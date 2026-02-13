@@ -1,0 +1,27 @@
+{
+  "fre": {
+    "in_channels": 1,
+    "out_channels": 8,
+    "kernel_size": 15,
+    "weights_file": "fre.pt"
+  },
+  "fsd": {
+    "kernel_size": 11,
+    "num_scales": 3,
+    "max_size": 1024,
+    "resize_mode": "resize_and_crop"
+  },
+  "gmm": {
+    "n_components": 5,
+    "covariance_type": "tied",
+    "weights_file": "gmm.pt"
+  },
+  "transforms": {
+    "weights_file": "fsd_transforms.pt"
+  },
+  "scoring": {
+    "train_mean": -42.25325127289017,
+    "train_std": 706.0556010649537,
+    "default_threshold": -2.0
+  }
+}

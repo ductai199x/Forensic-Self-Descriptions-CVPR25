@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools >= 68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fsd-detector"
+version = "1.0.0"
+description = "Detecting AI-Generated Images via Forensic Self-Descriptions (CVPR 2025)"
+readme = "README.md"
+license = "CC-BY-NC-SA-4.0"
+requires-python = ">=3.12"
+authors = [
+    { name = "Tai D. Nguyen", email = "tdn47@drexel.edu" },
+]
+dependencies = [
+    "torch >= 2.10.0",
+    "scipy >= 1.17.0",
+    "pillow >= 12.1.0",
+    "click >= 8.3.1",
+    "tqdm >= 4.67.3",
+    "scikit-learn >= 1.8.0",
+    "pillow-heif >= 1.2.0",
+    "ray[serve] >= 2.53.0",
+]
+
+[project.scripts]
+fsd-score = "fsd.cli:main"
+fsd-score-ray = "fsd.cli_ray:main"
+
+[project.urls]
+Repository = "https://github.com/ductai199x/Forensic-Self-Descriptions-CVPR25"
+Paper = "https://arxiv.org/abs/2503.21003"
+
+[tool.setuptools.packages.find]
+include = ["fsd*"]
