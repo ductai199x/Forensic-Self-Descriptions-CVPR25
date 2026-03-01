@@ -1,4 +1,4 @@
-# Forensic Self-Descriptions (FSD)
+# Forensic Self-Descriptions (FSD): Zero-Shot AI-Generated Image Detection
 
 [![CVPR 2025](https://img.shields.io/badge/CVPR-2025-blue)](https://cvpr.thecvf.com/)
 [![arXiv](https://img.shields.io/badge/arXiv-2503.21003-b31b1b)](https://arxiv.org/abs/2503.21003)
@@ -7,7 +7,9 @@
 
 **Zero-shot AI-generated image detection -- trained only on real images, generalizes to any unseen generator.**
 
-Official implementation of **"Forensic Self-Descriptions Are All You Need for Zero-Shot Detection, Open-Set Source Attribution, and Clustering of AI-generated Images"** (CVPR 2025).
+Official PyTorch implementation of **"Forensic Self-Descriptions Are All You Need for Zero-Shot Detection, Open-Set Source Attribution, and Clustering of AI-generated Images"** (CVPR 2025) by Tai D. Nguyen, Aref Azizpour, and Matthew C. Stamm.
+
+> **TL;DR:** FSD is a deepfake / AI-generated image detector that achieves **96.0% average AUC** across 24 generators (Stable Diffusion, Midjourney, DALL-E, StyleGAN, etc.) while being trained **exclusively on real photographs** — no synthetic training data required.
 
 <p align="center">
   <img src="assets/teaser.jpg" width="100%">
