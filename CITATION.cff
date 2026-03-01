@@ -1,0 +1,44 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Forensic Self-Descriptions Are All You Need for Zero-Shot Detection, Open-Set Source Attribution, and Clustering of AI-generated Images"
+type: software
+authors:
+  - given-names: Tai D.
+    family-names: Nguyen
+    email: tdn47@drexel.edu
+    affiliation: Drexel University
+  - given-names: Aref
+    family-names: Azizpour
+    affiliation: Drexel University
+  - given-names: Matthew C.
+    family-names: Stamm
+    affiliation: Drexel University
+repository-code: "https://github.com/ductai199x/Forensic-Self-Descriptions-CVPR25"
+url: "https://arxiv.org/abs/2503.21003"
+license: CC-BY-NC-SA-4.0
+keywords:
+  - deepfake detection
+  - ai-generated image detection
+  - image forensics
+  - zero-shot detection
+  - computer vision
+  - pytorch
+  - cvpr 2025
+  - stable diffusion
+  - midjourney
+  - generative ai
+preferred-citation:
+  type: conference-paper
+  title: "Forensic Self-Descriptions Are All You Need for Zero-Shot Detection, Open-Set Source Attribution, and Clustering of AI-generated Images"
+  authors:
+    - given-names: Tai D.
+      family-names: Nguyen
+    - given-names: Aref
+      family-names: Azizpour
+    - given-names: Matthew C.
+      family-names: Stamm
+  collection-title: "Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)"
+  year: 2025
+  month: 6
+  start: 3040
+  end: 3050
