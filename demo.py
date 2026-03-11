@@ -107,14 +107,24 @@ PLACEHOLDER_HTML = """
 # ---------------------------------------------------------------------------
 
 CSS = f"""
+/* light mode: tint page background so white cards have contrast */
+:root:not(.dark) {{
+  --body-background-fill: #e4e6df !important;
+  --background-fill-primary: #e4e6df !important;
+  --background-fill-secondary: #ffffff !important;
+  --block-background-fill: #ffffff !important;
+  --panel-background-fill: #ffffff !important;
+}}
+
 /* layout */
 .gradio-container {{ max-width: 1000px !important; margin: auto; }}
 footer {{ display: none !important; }}
 
+
 /* header */
 .app-header {{ text-align:center; padding:28px 0 16px; }}
 .app-header h1 {{ font-size:28px; font-weight:800; margin:0; color: var(--body-text-color); }}
-.app-header p  {{ margin:8px 0 0; font-size:15px; color: var(--body-text-color-subdued); }}
+.app-header p  {{ margin:8px 0 0; font-size:15px; color: var(--body-text-color); opacity:0.7; }}
 .app-header a  {{ color:{GLAUCOUS}; text-decoration:underline; text-underline-offset:3px; }}
 
 /* result card */
@@ -122,17 +132,19 @@ footer {{ display: none !important; }}
   border-radius: 14px;
   padding: 28px;
   background: var(--background-fill-secondary);
-  border: 1px solid var(--border-color-primary);
+  border: 1px solid var(--border-color-accent);
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
   min-height: 240px;
   display: flex; flex-direction: column; justify-content: center;
 }}
 .result-card.placeholder {{
   text-align: center; min-height: 320px; align-items: center;
-  border: 2px dashed var(--border-color-primary);
+  border: 2px dashed var(--border-color-accent);
   background: transparent;
+  box-shadow: none;
 }}
 .result-card.placeholder p {{
-  margin: 0; font-size: 16px; color: var(--body-text-color-subdued);
+  margin: 0; font-size: 16px; color: var(--body-text-color); opacity:0.6;
 }}
 
 /* verdict accent stripe — matches gauge gradient */
@@ -175,6 +187,8 @@ footer {{ display: none !important; }}
   flex:1; min-width:80px; text-align:center;
   padding:12px 8px; border-radius:10px;
   background: var(--background-fill-primary);
+  border: 1px solid var(--border-color-accent);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
 }}
 .stat-value {{
   font-size: clamp(14px, 3.5vw, 20px);
@@ -193,7 +207,8 @@ footer {{ display: none !important; }}
   padding:18px 22px; border-radius:10px; margin-top:12px;
   background: var(--background-fill-secondary);
   color: var(--body-text-color);
-  border: 1px solid var(--border-color-primary);
+  border: 1px solid var(--border-color-accent);
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
   opacity: 0.85;
 }}
 .info-box b {{ opacity:1; }}
@@ -205,7 +220,7 @@ footer {{ display: none !important; }}
   width:100%; border-collapse:collapse; margin:8px 0 12px;
 }}
 .info-box .interpret-table td {{
-  padding:8px 10px; border-bottom:1px solid var(--border-color-primary); vertical-align:top;
+  padding:8px 10px; border-bottom:1px solid var(--border-color-accent); vertical-align:top;
   font-size:14px;
 }}
 .info-box .interpret-table tr:last-child td {{ border-bottom:none; }}
@@ -223,6 +238,16 @@ footer {{ display: none !important; }}
   border-radius: 10px !important;
 }}
 .analyze-btn:hover {{ background: #4a6da6 !important; }}
+
+/* image input elevation */
+#img-input {{
+  box-shadow: 0 8px 32px rgba(92,128,188,.35) !important;
+  border: 1px solid var(--border-color-accent) !important;
+}}
+:root:not(.dark) #img-input {{
+  box-shadow: 0 8px 32px rgba(0,0,0,.25) !important;
+}}
+
 """
 
 
@@ -245,12 +270,7 @@ def create_demo(device: str = "cpu") -> gr.Blocks:
         result = detector.score(pil_img)
         return build_result_html(result)
 
-    theme = gr.themes.Soft(
-        font=gr.themes.GoogleFont("Inter"),
-        font_mono=gr.themes.GoogleFont("JetBrains Mono"),
-    )
-
-    with gr.Blocks(title="FSD - AI Image Detector", theme=theme, css=CSS) as demo:
+    with gr.Blocks(title="FSD - AI Image Detector") as demo:
 
         gr.HTML("""
         <div class="app-header">
@@ -270,6 +290,7 @@ def create_demo(device: str = "cpu") -> gr.Blocks:
                     sources=["upload", "clipboard"],
                     label="Input Image",
                     height=360,
+                    elem_id="img-input",
                 )
                 analyze_btn = gr.Button("Analyze", variant="primary", elem_classes=["analyze-btn"])
 
@@ -324,4 +345,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     demo = create_demo(device=args.device)
-    demo.launch(share=args.share, server_port=args.port, show_error=True)
+    theme = gr.themes.Soft(
+        font=gr.themes.GoogleFont("Inter"),
+        font_mono=gr.themes.GoogleFont("JetBrains Mono"),
+    )
+    # Force dark mode unless user explicitly overrides with ?__theme=light
+    js_dark = """() => {
+        if (!window.location.search.includes('__theme=light')) {
+            document.querySelector('body').classList.toggle('dark', true);
+        }
+    }"""
+    demo.launch(share=args.share, server_port=args.port, show_error=True, theme=theme, css=CSS, js=js_dark)
