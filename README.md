@@ -114,6 +114,21 @@ fsd-score photo.jpg --device cuda
 fsd-score --dir images/ --csv > results.csv
 ```
 
+### Gradio Demo
+
+An interactive web demo for testing images in your browser:
+
+```bash
+# Launch (auto-detects GPU)
+uv run demo.py
+
+# Create a public shareable link
+uv run demo.py --share
+
+# Force CPU-only
+uv run demo.py --device cpu
+```
+
 ### Multi-GPU / Ray Serve
 
 For scoring large batches across multiple GPUs, start the Ray Serve service first, then score images against it:

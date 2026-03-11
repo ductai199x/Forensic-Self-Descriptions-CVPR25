@@ -75,6 +75,13 @@ class FSDDetector:
         if device == "auto":
             device = "cuda" if torch.cuda.is_available() else "cpu"
 
+        # Disable TF32 on Ampere+ GPUs to ensure numerical consistency with CPU.
+        # TF32 reduces float32 mantissa to 10 bits, causing divergent FRE residuals
+        # that get amplified through the constrained least-squares solver.
+        if device != "cpu":
+            torch.backends.cuda.matmul.allow_tf32 = False
+            torch.backends.cudnn.allow_tf32 = False
+
         # Load config
         with open(weights_dir / "config.json") as f:
             config = json.load(f)

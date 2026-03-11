@@ -30,10 +30,12 @@ class ConstrainedConv2d(nn.Module):
         one_middle[kernel_size * kernel_size // 2] = 1
         self.one_middle = nn.Parameter(one_middle, requires_grad=False)
 
-    def constrain(self, w: torch.Tensor) -> torch.Tensor:
+    def constrain(self, w: torch.Tensor, one_middle: torch.Tensor = None) -> torch.Tensor:
+        if one_middle is None:
+            one_middle = self.one_middle
         w = w.view(-1, self.kernel_size * self.kernel_size)
         w = w - w.mean(1)[..., None] + 1 / (self.kernel_size * self.kernel_size - 1)
-        scaling_coeff = (w * (1 - self.one_middle)).sum(1)
+        scaling_coeff = (w * (1 - one_middle)).sum(1)
         w = w / scaling_coeff[..., None]
         w = w - w * self.one_middle
         w = w.view(self.out_channels, self.in_channels, self.kernel_size, self.kernel_size)
@@ -44,7 +46,11 @@ class ConstrainedConv2d(nn.Module):
         return self.constrain(self.w)
 
     def forward(self, x):
-        w = self.constrain(self.w)
+        # Constrain weights in the input's dtype so that float64 inputs get
+        # float64 constraint math, avoiding GPU float32 rounding divergence.
+        w = self.w if x.dtype == self.w.dtype else self.w.to(x.dtype)
+        one_middle = self.one_middle if x.dtype == self.one_middle.dtype else self.one_middle.to(x.dtype)
+        w = self.constrain(w, one_middle)
         y = F.conv2d(x, w, padding=self.kernel_size // 2)
         return y
 
