@@ -94,9 +94,9 @@ def compute_fsd(
     if isinstance(image, Image.Image):
         if image.mode != "L":
             image = image.convert("L")
-        image_t = torch.from_numpy(__import__("numpy").array(image)).float().unsqueeze(0)  # (1, H, W)
+        image_t = torch.from_numpy(__import__("numpy").array(image)).double().unsqueeze(0)  # (1, H, W)
     elif isinstance(image, torch.Tensor):
-        image_t = image.float()
+        image_t = image.double()
         if image_t.ndim == 2:
             image_t = image_t.unsqueeze(0)
     else:
