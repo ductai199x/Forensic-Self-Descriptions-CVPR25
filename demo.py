@@ -18,7 +18,7 @@ try:
 except ImportError:
     pass
 
-from fsd import FSDDetector, DetectionResult
+from fsd import FSDDetector, DetectionResult, AttributionResult
 
 # ---------------------------------------------------------------------------
 # Palette  (dark theme, user-provided from coolors.co)
@@ -56,11 +56,52 @@ def _prob_fake(z: float, threshold: float = -2.0, k: float = 2.0) -> float:
     return 1.0 / (1.0 + math.exp(-k * (threshold - z)))
 
 
-def build_result_html(result: DetectionResult) -> str:
+def _build_attribution_html(attr_result: AttributionResult) -> str:
+    """Build horizontal bar chart HTML for source attribution scores."""
+    # Sort sources by confidence (softmax of log-likelihoods)
+    import torch
+    names = list(attr_result.scores.keys())
+    ll_tensor = torch.tensor([attr_result.scores[n] for n in names], dtype=torch.float64)
+    probs = torch.softmax(ll_tensor, dim=0).tolist()
+    ranked = sorted(zip(names, probs), key=lambda x: x[1], reverse=True)
+
+    bars_html = ""
+    for name, prob in ranked:
+        pct = prob * 100
+        is_best = (name == attr_result.source)
+        bar_cls = "attr-bar-best" if is_best else ""
+        label_cls = "attr-label-best" if is_best else ""
+        bars_html += f"""
+        <div class="attr-row">
+          <span class="attr-name {label_cls}">{name}</span>
+          <div class="attr-track">
+            <div class="attr-fill {bar_cls}" style="width:{pct:.1f}%"></div>
+          </div>
+          <span class="attr-pct {label_cls}">{pct:.1f}%</span>
+        </div>"""
+
+    return f"""
+    <div class="attribution-section">
+      <div class="attr-header">Source Attribution</div>
+      <div class="attr-predicted">
+        Predicted source: <strong>{attr_result.source}</strong>
+        ({attr_result.confidence:.1%} confidence)
+      </div>
+      <div class="attr-chart">{bars_html}
+      </div>
+    </div>"""
+
+
+def build_result_html(result, attr_result=None) -> str:
     z = result.z_score
-    label, desc, css_cls = _verdict(z, result.threshold)
-    p_fake = _prob_fake(z, result.threshold)
+    threshold = result.threshold
+    label, desc, css_cls = _verdict(z, threshold)
+    p_fake = _prob_fake(z, threshold)
     pct = max(0, min(100, (z + 5.0) / 6.0 * 100))
+
+    attribution_html = ""
+    if attr_result is not None:
+        attribution_html = _build_attribution_html(attr_result)
 
     return f"""
     <div class="result-card {css_cls}">
@@ -91,13 +132,14 @@ def build_result_html(result: DetectionResult) -> str:
           <div class="stat-label">Raw Score</div>
         </div>
       </div>
+      {attribution_html}
     </div>
     """
 
 
 PLACEHOLDER_HTML = """
 <div class="result-card placeholder">
-  <p>Upload an image to check if it is AI-generated.</p>
+  <p>Upload an image to check if it is AI-generated and identify its source.</p>
 </div>
 """
 
@@ -229,6 +271,57 @@ footer {{ display: none !important; }}
   margin:10px 0 0; font-size:13px; font-style:italic; opacity:0.7;
 }}
 
+/* attribution */
+.attribution-section {{
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-color-accent);
+}}
+.attr-header {{
+  font-size: 16px; font-weight: 700;
+  color: var(--body-text-color);
+  margin-bottom: 6px;
+}}
+.attr-predicted {{
+  font-size: 14px;
+  color: var(--body-text-color); opacity: 0.85;
+  margin-bottom: 14px;
+}}
+.attr-chart {{ display: flex; flex-direction: column; gap: 6px; }}
+.attr-row {{
+  display: flex; align-items: center; gap: 8px;
+}}
+.attr-name {{
+  width: 140px; min-width: 140px;
+  font-size: 12px; text-align: right;
+  color: var(--body-text-color-subdued);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}}
+.attr-track {{
+  flex: 1; height: 14px; border-radius: 7px;
+  background: var(--background-fill-primary);
+  border: 1px solid var(--border-color-accent);
+  overflow: hidden;
+}}
+.attr-fill {{
+  height: 100%; border-radius: 7px;
+  background: {GLAUCOUS}; opacity: 0.5;
+  transition: width 0.4s ease;
+}}
+.attr-fill.attr-bar-best {{
+  background: #ef4444; opacity: 0.9;
+}}
+.attr-pct {{
+  width: 48px; min-width: 48px;
+  font-size: 12px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--body-text-color-subdued);
+}}
+.attr-label-best {{
+  color: var(--body-text-color) !important;
+  font-weight: 700 !important;
+}}
+
 /* button */
 .analyze-btn {{
   background: {GLAUCOUS} !important;
@@ -257,8 +350,14 @@ footer {{ display: none !important; }}
 
 def create_demo(device: str = "cpu") -> gr.Blocks:
     print(f"Loading FSD detector on device={device} ...")
-    detector = FSDDetector.load("weights/", device=device)
-    print("Detector ready.")
+    try:
+        detector = FSDDetector.load(device=device, attribution=True)
+        has_attribution = True
+        print("Detector ready (with attribution).")
+    except Exception:
+        detector = FSDDetector.load(device=device)
+        has_attribution = False
+        print("Detector ready (detection only, attribution weights not found).")
 
     def analyze(image):
         if image is None:
@@ -268,7 +367,10 @@ def create_demo(device: str = "cpu") -> gr.Blocks:
         except Exception as exc:
             return f'<div class="result-card placeholder"><p>Could not open image: {exc}</p></div>'
         result = detector.score(pil_img)
-        return build_result_html(result)
+        attr_result = None
+        if has_attribution and result.is_fake:
+            attr_result = detector.attribute(pil_img)
+        return build_result_html(result, attr_result)
 
     with gr.Blocks(title="FSD - AI Image Detector") as demo:
 
@@ -276,7 +378,7 @@ def create_demo(device: str = "cpu") -> gr.Blocks:
         <div class="app-header">
           <h1>Forensic Self-Descriptions</h1>
           <p>
-            Zero-shot AI-generated image detection &mdash;
+            Zero-shot AI-generated image detection &amp; source attribution &mdash;
             trained only on real photos, generalizes to any generator &mdash;
             <a href="https://arxiv.org/abs/2503.21003" target="_blank">CVPR 2025</a>
           </p>
@@ -310,6 +412,8 @@ def create_demo(device: str = "cpu") -> gr.Blocks:
                 on real photographs, measures how well the fingerprint matches natural image statistics.</li>
             <li><b>Z-Score &amp; Decision</b> &mdash; The score is normalized into a z-score
                 (standard deviations from the real-image mean). More negative = less like a real photo.</li>
+            <li><b>Source Attribution</b> &mdash; If an image is flagged as AI-generated,
+                per-source statistical models identify which generator most likely produced it.</li>
           </ol>
 
           <b>Interpreting the results</b>
