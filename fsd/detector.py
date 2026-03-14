@@ -58,11 +58,12 @@ class FSDDetector:
         self.train_std = config["scoring"]["train_std"]
 
     @classmethod
-    def load(cls, weights_dir, device="auto", threshold=None):
-        """Load pre-trained detector from weights directory.
+    def load(cls, weights_dir=None, device="auto", threshold=None):
+        """Load pre-trained detector.
 
         Args:
             weights_dir: Path to directory containing config.json and weight files.
+                If None, auto-detects or downloads weights to ~/.cache/fsd/.
             device: Device to load onto. "auto" selects CUDA if available.
             threshold: Z-score threshold for fake detection. If None, uses the
                 default from config.json. More negative = stricter.
@@ -70,6 +71,9 @@ class FSDDetector:
         Returns:
             FSDDetector instance ready for scoring.
         """
+        if weights_dir is None:
+            from .weights import get_weights_dir
+            weights_dir = get_weights_dir()
         weights_dir = Path(weights_dir)
 
         if device == "auto":

@@ -124,7 +124,8 @@ def serve(host, port, threshold, weights_dir, num_gpus, gpu_per_replica):
         weights_dir = _find_weights_dir()
         if weights_dir is None:
             click.echo(
-                "Error: Could not find weights directory. Use --weights-dir.",
+                "Error: Could not find or download weights. "
+                "Check your internet connection, or use --weights-dir.",
                 err=True,
             )
             sys.exit(1)

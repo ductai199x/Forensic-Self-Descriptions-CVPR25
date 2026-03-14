@@ -30,16 +30,12 @@ IMAGE_EXTENSIONS = {
 
 
 def _find_weights_dir():
-    """Find weights directory relative to the package."""
-    # Check common locations
-    candidates = [
-        Path(__file__).parent.parent / "weights",  # installed or repo root
-        Path.cwd() / "weights",
-    ]
-    for c in candidates:
-        if (c / "config.json").exists():
-            return c
-    return None
+    """Find or auto-download weights directory."""
+    from .weights import get_weights_dir
+    try:
+        return get_weights_dir()
+    except Exception:
+        return None
 
 
 @click.command()
@@ -71,13 +67,13 @@ def main(images, image_dir, threshold, device, weights_dir, csv_output):
     # Deduplicate and sort
     image_paths = sorted(set(image_paths))
 
-    # Find weights
+    # Find or download weights
     if weights_dir is None:
         weights_dir = _find_weights_dir()
         if weights_dir is None:
             click.echo(
-                "Error: Could not find weights directory. "
-                "Use --weights-dir or run from the repo root.",
+                "Error: Could not find or download weights. "
+                "Check your internet connection, or use --weights-dir.",
                 err=True,
             )
             sys.exit(1)
