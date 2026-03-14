@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fsd-detector"
-version = "1.0.0"
+version = "1.1.0"
 description = "Detecting AI-Generated Images via Forensic Self-Descriptions (CVPR 2025)"
 readme = "README.md"
 license = "CC-BY-NC-SA-4.0"

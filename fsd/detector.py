@@ -6,6 +6,11 @@ Usage:
     detector = FSDDetector.load("weights/")
     result = detector.score("photo.jpg")
     print(result)  # DetectionResult(z_score=-3.5, is_fake=True, ...)
+
+    # With source attribution
+    detector = FSDDetector.load("weights/", attribution=True)
+    result = detector.attribute("fake_photo.jpg")
+    print(result.source, result.confidence)
 """
 
 import json
@@ -48,7 +53,8 @@ class FSDDetector:
     Loads pre-trained weights and provides a simple scoring API.
     """
 
-    def __init__(self, fre, gmm, projections, config, threshold):
+    def __init__(self, fre, gmm, projections, config, threshold,
+                 attribution_projections=None, source_gmms=None):
         self.fre = fre
         self.gmm = gmm
         self.projections = projections
@@ -56,9 +62,11 @@ class FSDDetector:
         self.threshold = threshold
         self.train_mean = config["scoring"]["train_mean"]
         self.train_std = config["scoring"]["train_std"]
+        self.attribution_projections = attribution_projections or []
+        self.source_gmms = source_gmms
 
     @classmethod
-    def load(cls, weights_dir=None, device="auto", threshold=None):
+    def load(cls, weights_dir=None, device="auto", threshold=None, attribution=False):
         """Load pre-trained detector.
 
         Args:
@@ -67,13 +75,15 @@ class FSDDetector:
             device: Device to load onto. "auto" selects CUDA if available.
             threshold: Z-score threshold for fake detection. If None, uses the
                 default from config.json. More negative = stricter.
+            attribution: If True, also load source attribution weights.
+                Enables the attribute() method.
 
         Returns:
             FSDDetector instance ready for scoring.
         """
         if weights_dir is None:
             from .weights import get_weights_dir
-            weights_dir = get_weights_dir()
+            weights_dir = get_weights_dir(attribution=attribution)
         weights_dir = Path(weights_dir)
 
         if device == "auto":
@@ -104,7 +114,26 @@ class FSDDetector:
             weights_dir / config["transforms"]["weights_file"], device=device
         )
 
-        return cls(fre, gmm, projections, config, threshold)
+        # Load attribution weights if requested
+        attribution_projections = None
+        source_gmms = None
+        if attribution:
+            attr_config = config.get("attribution")
+            if attr_config is None:
+                raise RuntimeError(
+                    "Attribution weights not found in config.json. "
+                    "Ensure you have the latest weights with attribution support."
+                )
+            attribution_projections = load_transforms(
+                weights_dir / attr_config["weights_file"], device=device
+            )
+            from .attribution import load_source_gmms
+            source_gmms = load_source_gmms(
+                weights_dir / attr_config["source_gmms_file"], device=device
+            )
+
+        return cls(fre, gmm, projections, config, threshold,
+                   attribution_projections, source_gmms)
 
     def score(self, image) -> DetectionResult:
         """Score a single image.
@@ -162,6 +191,61 @@ class FSDDetector:
                 pass
 
         return [self.score(img) for img in images]
+
+    def attribute(self, image):
+        """Identify the source of an AI-generated image.
+
+        Requires loading with attribution=True. Runs the full detection pipeline
+        plus attribution-specific transforms and per-source GMM scoring.
+
+        Args:
+            image: File path (str/Path), PIL Image, or grayscale tensor (1, H, W).
+
+        Returns:
+            AttributionResult with source name, confidence, per-source scores,
+            z_score, and is_fake.
+        """
+        if self.source_gmms is None:
+            raise RuntimeError(
+                "Attribution not loaded. Use FSDDetector.load(attribution=True)."
+            )
+
+        from .attribution import AttributionResult, classify
+
+        fsd_config = self.config["fsd"]
+        fsd_vec = compute_fsd(
+            image,
+            self.fre,
+            kernel_size=fsd_config["kernel_size"],
+            num_scales=fsd_config["num_scales"],
+            max_size=fsd_config["max_size"],
+            resize_mode=fsd_config["resize_mode"],
+        )
+
+        device = self.fre.device
+        fsd_vec = fsd_vec.to(device).unsqueeze(0)  # (1, D)
+
+        with torch.no_grad():
+            # Detection transforms
+            fsd_det = apply_projections(fsd_vec, self.projections)
+
+            # Detection score
+            raw_score = self.gmm.score_samples(fsd_det).item()
+            z_score = (raw_score - self.train_mean) / self.train_std
+
+            # Attribution transforms (applied on top of detection)
+            fsd_attr = apply_projections(fsd_det, self.attribution_projections)
+
+        # Classify source
+        source, confidence, scores = classify(fsd_attr, self.source_gmms)
+
+        return AttributionResult(
+            source=source,
+            confidence=confidence,
+            scores=scores,
+            z_score=z_score,
+            is_fake=z_score < self.threshold,
+        )
 
     def compute_fsd(self, image) -> torch.Tensor:
         """Advanced: compute the raw FSD vector (before scoring).

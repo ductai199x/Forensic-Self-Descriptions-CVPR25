@@ -13,11 +13,12 @@ _RELEASE_TAG = "v1.0.0"
 _BASE_URL = f"https://github.com/{_REPO}/releases/download/{_RELEASE_TAG}"
 
 _WEIGHT_FILES = ["config.json", "fre.pt", "gmm.pt", "fsd_transforms.pt"]
+_ATTRIBUTION_FILES = ["attribution_transforms.pt", "source_gmms.pt"]
 
 _CACHE_DIR = Path.home() / ".cache" / "fsd"
 
 
-def get_weights_dir():
+def get_weights_dir(attribution=False):
     """Find or download pre-trained weights.
 
     Search order:
@@ -25,32 +26,43 @@ def get_weights_dir():
         2. <package>/weights/ (installed alongside code)
         3. ~/.cache/fsd/ (auto-downloaded)
 
+    Args:
+        attribution: If True, also ensure attribution weight files are present.
+
     Returns:
         Path to weights directory containing config.json and weight files.
     """
+    def _has_weights(d, need_attribution=False):
+        if not (d / "config.json").exists():
+            return False
+        if need_attribution:
+            return all((d / f).exists() for f in _ATTRIBUTION_FILES)
+        return True
+
     # 1. Repo checkout
     cwd_weights = Path.cwd() / "weights"
-    if (cwd_weights / "config.json").exists():
+    if _has_weights(cwd_weights, attribution):
         return cwd_weights
 
     # 2. Installed alongside package
     pkg_weights = Path(__file__).parent.parent / "weights"
-    if (pkg_weights / "config.json").exists():
+    if _has_weights(pkg_weights, attribution):
         return pkg_weights
 
     # 3. Cached download
-    if (_CACHE_DIR / "config.json").exists():
+    if _has_weights(_CACHE_DIR, attribution):
         return _CACHE_DIR
 
     # Need to download
-    return download_weights()
+    return download_weights(attribution=attribution)
 
 
-def download_weights(dest=None):
+def download_weights(dest=None, attribution=False):
     """Download pre-trained weights from GitHub releases.
 
     Args:
         dest: Destination directory. Defaults to ~/.cache/fsd/.
+        attribution: If True, also download attribution weight files.
 
     Returns:
         Path to the weights directory.
@@ -58,7 +70,8 @@ def download_weights(dest=None):
     dest = Path(dest) if dest is not None else _CACHE_DIR
     dest.mkdir(parents=True, exist_ok=True)
 
-    for filename in _WEIGHT_FILES:
+    files = _WEIGHT_FILES + (_ATTRIBUTION_FILES if attribution else [])
+    for filename in files:
         filepath = dest / filename
         if filepath.exists():
             continue

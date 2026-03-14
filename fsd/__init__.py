@@ -10,9 +10,17 @@ Quick start:
     print(result.z_score, result.is_fake)
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 from .detector import FSDDetector, DetectionResult
+from .attribution import AttributionResult
 from .weights import download_weights, get_weights_dir
 
-__all__ = ["FSDDetector", "DetectionResult", "download_weights", "get_weights_dir", "__version__"]
+__all__ = [
+    "FSDDetector",
+    "DetectionResult",
+    "AttributionResult",
+    "download_weights",
+    "get_weights_dir",
+    "__version__",
+]
