@@ -291,6 +291,7 @@ def create_demo(device: str = "cpu") -> gr.Blocks:
                     label="Input Image",
                     height=360,
                     elem_id="img-input",
+                    format="png",
                 )
                 analyze_btn = gr.Button("Analyze", variant="primary", elem_classes=["analyze-btn"])
 
