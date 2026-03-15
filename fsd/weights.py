@@ -22,9 +22,11 @@ def get_weights_dir(attribution=False):
     """Find or download pre-trained weights.
 
     Search order:
-        1. ./weights/ (repo checkout)
-        2. <package>/weights/ (installed alongside code)
-        3. ~/.cache/fsd/ (auto-downloaded)
+        1. ~/.cache/fsd/<version>/ (versioned cache, auto-downloaded)
+        2. Auto-download from GitHub releases if not cached
+
+    To use custom weights, pass the directory explicitly to
+    ``FSDDetector.load(weights_dir="path/to/weights/")``.
 
     Args:
         attribution: If True, also ensure attribution weight files are present.
@@ -39,21 +41,11 @@ def get_weights_dir(attribution=False):
             return all((d / f).exists() for f in _ATTRIBUTION_FILES)
         return True
 
-    # 1. Versioned cache (auto-downloaded, known to match current release)
+    # 1. Versioned cache
     if _has_weights(_CACHE_DIR, attribution):
         return _CACHE_DIR
 
-    # 2. Repo checkout
-    cwd_weights = Path.cwd() / "weights"
-    if _has_weights(cwd_weights, attribution):
-        return cwd_weights
-
-    # 3. Installed alongside package
-    pkg_weights = Path(__file__).parent.parent / "weights"
-    if _has_weights(pkg_weights, attribution):
-        return pkg_weights
-
-    # Need to download
+    # 2. Auto-download
     return download_weights(attribution=attribution)
 
 
