@@ -3,12 +3,12 @@
 Usage:
     from fsd import FSDDetector
 
-    detector = FSDDetector.load("weights/")
+    detector = FSDDetector.load()
     result = detector.score("photo.jpg")
     print(result)  # DetectionResult(z_score=-3.5, is_fake=True, ...)
 
     # With source attribution
-    detector = FSDDetector.load("weights/", attribution=True)
+    detector = FSDDetector.load(attribution=True)
     result = detector.attribute("fake_photo.jpg")
     print(result.source, result.confidence)
 """
@@ -71,7 +71,7 @@ class FSDDetector:
 
         Args:
             weights_dir: Path to directory containing config.json and weight files.
-                If None, auto-detects or downloads weights to ~/.cache/fsd/.
+                If None, uses versioned cache or auto-downloads from GitHub releases.
             device: Device to load onto. "auto" selects CUDA if available.
             threshold: Z-score threshold for fake detection. If None, uses the
                 default from config.json. More negative = stricter.

@@ -8,7 +8,7 @@ Usage:
     from fsd.gmm import TorchGMM, load_gmm
 
     # Inference from pre-trained weights
-    gmm = load_gmm("weights/gmm.pt", device="cuda")
+    gmm = load_gmm("path/to/gmm.pt", device="cuda")
     log_lik = gmm.score_samples(X)
 
     # Training a new GMM

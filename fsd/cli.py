@@ -29,13 +29,10 @@ IMAGE_EXTENSIONS = {
 }
 
 
-def _find_weights_dir(attribution=False):
+def _resolve_weights_dir(attribution=False):
     """Find or auto-download weights directory."""
     from .weights import get_weights_dir
-    try:
-        return get_weights_dir(attribution=attribution)
-    except Exception:
-        return None
+    return get_weights_dir(attribution=attribution)
 
 
 @click.command()
@@ -69,20 +66,15 @@ def main(images, image_dir, threshold, device, weights_dir, csv_output, attribut
     # Deduplicate and sort
     image_paths = sorted(set(image_paths))
 
-    # Find or download weights
-    if weights_dir is None:
-        weights_dir = _find_weights_dir(attribution=attribute)
+    # Load detector (auto-downloads weights if needed)
+    try:
         if weights_dir is None:
-            click.echo(
-                "Error: Could not find or download weights. "
-                "Check your internet connection, or use --weights-dir.",
-                err=True,
-            )
-            sys.exit(1)
-
-    # Load detector
-    click.echo(f"Loading detector from {weights_dir} (device={device})...", err=True)
-    detector = FSDDetector.load(weights_dir, device=device, threshold=threshold, attribution=attribute)
+            detector = FSDDetector.load(device=device, threshold=threshold, attribution=attribute)
+        else:
+            detector = FSDDetector.load(weights_dir, device=device, threshold=threshold, attribution=attribute)
+    except RuntimeError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
     click.echo(f"Scoring {len(image_paths)} image(s)...\n", err=True)
 
     # CSV header

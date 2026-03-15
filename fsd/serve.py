@@ -130,7 +130,7 @@ class FSDScorer:
 
 
 def build_app(
-    weights_dir="weights",
+    weights_dir=None,
     threshold=-2.0,
     num_gpus=None,
     gpu_per_replica=1.0,
@@ -155,6 +155,9 @@ def build_app(
             num_gpus = torch.cuda.device_count() or 1
 
     num_replicas = max(1, int(num_gpus / gpu_per_replica))
+    if weights_dir is None:
+        from .weights import get_weights_dir
+        weights_dir = get_weights_dir()
     weights_dir = str(Path(weights_dir).resolve())
 
     app = FSDScorer.options(

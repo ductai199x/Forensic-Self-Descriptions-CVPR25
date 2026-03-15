@@ -18,7 +18,7 @@ from urllib.error import HTTPError, URLError
 
 import click
 
-from .cli import IMAGE_EXTENSIONS, _find_weights_dir
+from .cli import IMAGE_EXTENSIONS, _resolve_weights_dir
 
 
 @click.group()
@@ -121,13 +121,10 @@ def serve(host, port, threshold, weights_dir, num_gpus, gpu_per_replica):
         {"z_score": -3.5, "raw_score": -2512.3, "is_fake": true, "threshold": -2.0}
     """
     if weights_dir is None:
-        weights_dir = _find_weights_dir()
-        if weights_dir is None:
-            click.echo(
-                "Error: Could not find or download weights. "
-                "Check your internet connection, or use --weights-dir.",
-                err=True,
-            )
+        try:
+            weights_dir = _resolve_weights_dir()
+        except RuntimeError as e:
+            click.echo(f"Error: {e}", err=True)
             sys.exit(1)
 
     if threshold is None:
