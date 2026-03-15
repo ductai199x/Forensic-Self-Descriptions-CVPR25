@@ -10,7 +10,7 @@ Quick start:
     print(result.z_score, result.is_fake)
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 from .detector import FSDDetector, DetectionResult
 from .attribution import AttributionResult
