@@ -9,7 +9,7 @@ from urllib.error import URLError
 
 # GitHub release URL pattern
 _REPO = "ductai199x/Forensic-Self-Descriptions-CVPR25"
-_RELEASE_TAG = "v1.0.0"
+_RELEASE_TAG = "v1.1.0"
 _BASE_URL = f"https://github.com/{_REPO}/releases/download/{_RELEASE_TAG}"
 
 _WEIGHT_FILES = ["config.json", "fre.pt", "gmm.pt", "fsd_transforms.pt"]

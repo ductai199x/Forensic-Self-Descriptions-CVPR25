@@ -101,7 +101,17 @@ def build_result_html(result, attr_result=None) -> str:
 
     attribution_html = ""
     if attr_result is not None:
-        attribution_html = _build_attribution_html(attr_result)
+        if attr_result.source == "Real":
+            attribution_html = """
+    <div class="attribution-section">
+      <div class="attr-header">Source Attribution</div>
+      <div class="attr-predicted" style="opacity:0.7; font-style:italic;">
+        Source could not be identified &mdash; the generator may not be in our
+        database or confidence is too low for a reliable match.
+      </div>
+    </div>"""
+        else:
+            attribution_html = _build_attribution_html(attr_result)
 
     return f"""
     <div class="result-card {css_cls}">
