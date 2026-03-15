@@ -58,12 +58,8 @@ def _prob_fake(z: float, threshold: float = -2.0, k: float = 2.0) -> float:
 
 def _build_attribution_html(attr_result: AttributionResult) -> str:
     """Build horizontal bar chart HTML for source attribution scores."""
-    # Sort sources by confidence (softmax of log-likelihoods)
-    import torch
-    names = list(attr_result.scores.keys())
-    ll_tensor = torch.tensor([attr_result.scores[n] for n in names], dtype=torch.float64)
-    probs = torch.softmax(ll_tensor, dim=0).tolist()
-    ranked = sorted(zip(names, probs), key=lambda x: x[1], reverse=True)
+    # Scores are already calibrated probabilities (z-score-normalized softmax)
+    ranked = sorted(attr_result.scores.items(), key=lambda x: x[1], reverse=True)
 
     bars_html = ""
     for name, prob in ranked:

@@ -24,8 +24,8 @@ class AttributionResult:
 
     Attributes:
         source: Predicted source name (e.g., "DALL-E 3", "Stable Diffusion XL").
-        confidence: Confidence score (normalized probability of the best source).
-        scores: Dict mapping each source name to its log-likelihood.
+        confidence: Confidence score (z-score-normalized probability of the best source).
+        scores: Dict mapping each source name to its calibrated probability.
         z_score: Detection z-score (from the detection pipeline).
         is_fake: Whether the image was detected as fake.
     """
@@ -51,7 +51,7 @@ def load_source_gmms(path, device="cpu"):
         device: Device to load onto.
 
     Returns:
-        Dict mapping source name to TorchGMM instance.
+        Dict mapping source name to (TorchGMM, ll_mean, ll_std).
     """
     data = torch.load(path, map_location="cpu", weights_only=True)
     source_gmms = {}
@@ -72,7 +72,9 @@ def load_source_gmms(path, device="cpu"):
         if device != "cpu":
             gmm.to(device)
 
-        source_gmms[name] = gmm
+        ll_mean = float(source.get("ll_mean", 0.0))
+        ll_std = float(source.get("ll_std", 1.0))
+        source_gmms[name] = (gmm, ll_mean, ll_std)
 
     return source_gmms
 
@@ -82,22 +84,27 @@ def classify(fsd_vec, source_gmms):
 
     Args:
         fsd_vec: (1, D) projected FSD tensor.
-        source_gmms: Dict mapping source name to TorchGMM.
+        source_gmms: Dict mapping source name to (TorchGMM, ll_mean, ll_std).
 
     Returns:
         (source_name, confidence, scores_dict) where:
         - source_name: name of the best-matching source
-        - confidence: softmax probability of the best source
+        - confidence: z-score-normalized softmax probability of the best source
         - scores_dict: dict mapping each source name to its log-likelihood
     """
     names = list(source_gmms.keys())
     log_liks = {}
-    for name, gmm in source_gmms.items():
-        log_liks[name] = gmm.score_samples(fsd_vec).item()
+    z_scores = {}
+    for name, (gmm, ll_mean, ll_std) in source_gmms.items():
+        ll = gmm.score_samples(fsd_vec).item()
+        log_liks[name] = ll
+        z_scores[name] = (ll - ll_mean) / ll_std if ll_std > 0 else 0.0
 
-    # Softmax over log-likelihoods for confidence
-    ll_tensor = torch.tensor([log_liks[n] for n in names], dtype=torch.float64)
-    probs = torch.softmax(ll_tensor, dim=0)
+    # Softmax over z-scores (not raw log-likelihoods) for calibrated confidence
+    z_tensor = torch.tensor([z_scores[n] for n in names], dtype=torch.float64)
+    probs = torch.softmax(z_tensor, dim=0)
     best_idx = probs.argmax().item()
 
-    return names[best_idx], probs[best_idx].item(), log_liks
+    # Return per-source probabilities (calibrated) instead of raw log-likelihoods
+    prob_dict = {n: p.item() for n, p in zip(names, probs)}
+    return names[best_idx], probs[best_idx].item(), prob_dict
