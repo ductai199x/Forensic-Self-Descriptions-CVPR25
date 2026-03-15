@@ -188,6 +188,8 @@ The detector outputs a **z-score** for each image:
 - **z < -2**: Likely AI-generated (default threshold)
 - **z < -3**: High confidence AI-generated
 
+> **Note:** Detection is significantly more reliable than attribution. Detection is zero-shot (trained only on real images) and generalizes to any generator with 96% average AUC. Attribution, on the other hand, can only identify sources it has been trained on and may misclassify images from unknown generators. Always trust the detection result over the attribution result.
+
 ## Pre-trained Weights
 
 Weights are automatically downloaded from [GitHub releases](https://github.com/ductai199x/Forensic-Self-Descriptions-CVPR25/releases) on first use and cached to `~/.cache/fsd/`. No manual download needed.
