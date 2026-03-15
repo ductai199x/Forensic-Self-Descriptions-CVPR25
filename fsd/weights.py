@@ -39,19 +39,19 @@ def get_weights_dir(attribution=False):
             return all((d / f).exists() for f in _ATTRIBUTION_FILES)
         return True
 
-    # 1. Repo checkout
+    # 1. Versioned cache (auto-downloaded, known to match current release)
+    if _has_weights(_CACHE_DIR, attribution):
+        return _CACHE_DIR
+
+    # 2. Repo checkout
     cwd_weights = Path.cwd() / "weights"
     if _has_weights(cwd_weights, attribution):
         return cwd_weights
 
-    # 2. Installed alongside package
+    # 3. Installed alongside package
     pkg_weights = Path(__file__).parent.parent / "weights"
     if _has_weights(pkg_weights, attribution):
         return pkg_weights
-
-    # 3. Cached download
-    if _has_weights(_CACHE_DIR, attribution):
-        return _CACHE_DIR
 
     # Need to download
     return download_weights(attribution=attribution)
