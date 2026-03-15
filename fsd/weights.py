@@ -1,7 +1,5 @@
 """Auto-download and cache pre-trained weights from GitHub releases."""
 
-import hashlib
-import json
 import sys
 from pathlib import Path
 from urllib.request import urlopen, Request
@@ -53,7 +51,7 @@ def download_weights(dest=None, attribution=False):
     """Download pre-trained weights from GitHub releases.
 
     Args:
-        dest: Destination directory. Defaults to ~/.cache/fsd/.
+        dest: Destination directory. Defaults to ~/.cache/fsd/<version>/.
         attribution: If True, also download attribution weight files.
 
     Returns:

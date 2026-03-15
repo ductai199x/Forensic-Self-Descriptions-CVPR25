@@ -4,7 +4,7 @@ Deploys the full scoring pipeline across multiple GPUs via Ray Serve.
 Each replica loads its own copy of the model on a dedicated GPU fraction.
 
 Usage via CLI:
-    fsd-score-ray serve --weights-dir ./weights
+    fsd-score-ray serve
     fsd-score-ray score --dir ./images/
 """
 
