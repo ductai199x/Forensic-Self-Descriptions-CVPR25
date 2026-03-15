@@ -15,7 +15,7 @@ _BASE_URL = f"https://github.com/{_REPO}/releases/download/{_RELEASE_TAG}"
 _WEIGHT_FILES = ["config.json", "fre.pt", "gmm.pt", "fsd_transforms.pt"]
 _ATTRIBUTION_FILES = ["attribution_transforms.pt", "source_gmms.pt"]
 
-_CACHE_DIR = Path.home() / ".cache" / "fsd"
+_CACHE_DIR = Path.home() / ".cache" / "fsd" / _RELEASE_TAG
 
 
 def get_weights_dir(attribution=False):
