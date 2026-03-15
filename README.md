@@ -21,11 +21,13 @@ Official PyTorch implementation of **"Forensic Self-Descriptions Are All You Nee
 
 ## Updates
 
+- **2026-03**: Added source attribution -- identify which AI generator created an image (14 sources supported).
+- **2026-03**: Weights now auto-download from GitHub releases on first use.
 - **2026-02**: Released inference code and pre-trained model weights for AI-generated image detection.
 
 ## Roadmap
 
-- [ ] Code for open-set source attribution
+- [x] Code for open-set source attribution
 - [ ] Code for unsupervised clustering
 
 ## Overview
@@ -78,7 +80,8 @@ source .venv/bin/activate
 ```python
 from fsd import FSDDetector
 
-detector = FSDDetector.load("weights/")
+# Detection only
+detector = FSDDetector.load()
 result = detector.score("photo.jpg")
 
 print(result.z_score)   # e.g., -3.5 (negative = likely fake)
@@ -92,6 +95,23 @@ for path, result in zip(paths, results):
     print(f"{path}: z={result.z_score:.4f} {'FAKE' if result.is_fake else 'REAL'}")
 ```
 
+#### Source Attribution
+
+Identify which AI generator created an image:
+
+```python
+# Load with attribution support
+detector = FSDDetector.load(attribution=True)
+result = detector.attribute("suspicious_image.jpg")
+
+print(result.source)      # e.g., "Stable Diffusion XL"
+print(result.confidence)  # e.g., 0.95
+print(result.is_fake)     # True
+print(result.scores)      # per-source log-likelihoods
+```
+
+Supported sources: DALL-E 3, Stable Diffusion 1.5/3/XL, Midjourney v6, Adobe Firefly, StyleGAN2/3, ProGAN, GigaGAN, Grok, GPT-Image 1/1.5, and more.
+
 ### Command Line
 
 ```bash
@@ -103,6 +123,9 @@ fsd-score img1.jpg img2.png img3.webp
 
 # Directory of images
 fsd-score --dir path/to/images/
+
+# With source attribution
+fsd-score photo.jpg --attribute
 
 # Custom threshold (default: -2.0, more negative = stricter)
 fsd-score photo.jpg --threshold -3.0
@@ -167,11 +190,17 @@ The detector outputs a **z-score** for each image:
 
 ## Pre-trained Weights
 
-Pre-trained weights are included in the `weights/` directory:
+Weights are automatically downloaded from [GitHub releases](https://github.com/ductai199x/Forensic-Self-Descriptions-CVPR25/releases) on first use and cached to `~/.cache/fsd/`. No manual download needed.
+
+**Detection weights:**
 - `fre.pt` -- Forensic Residual Extractor (constrained convolution, ~10 KB)
 - `gmm.pt` -- Gaussian Mixture Model (K=5, tied covariance, ~15 MB)
-- `fsd_transforms.pt` -- Learned feature transform weights (~34 MB)
+- `fsd_transforms.pt` -- Detection feature transforms (~40 MB)
 - `config.json` -- Model configuration and scoring parameters
+
+**Attribution weights** (downloaded when `attribution=True`):
+- `attribution_transforms.pt` -- Attribution feature transform (~26 MB)
+- `source_gmms.pt` -- Per-source GMMs for 14 generators (~207 MB)
 
 ## Citation
 
